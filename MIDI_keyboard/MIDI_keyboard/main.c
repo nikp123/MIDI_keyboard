@@ -12,16 +12,22 @@ USB_PUBLIC uchar usbFunctionSetup(uchar data[8])
 	return 0;
 }
 
-int main(void)
+void main(void)
 {
-	USB_PORT &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT);
-	USB_DDR &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT);
+	PORTB |= (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
+	DDRB &= ~(1 << BUT_B0) & ~(1 << BUT_B1) & ~(1 << BUT_B2) & ~(1 << BUT_B3);
 	
-	BUT_PORT = 0xFF;
-	BUT_DDR = 0x00;
+	PORTC |= (1 << BUT_C0) | (1 << BUT_C1);
+	DDRC &= ~(1 << BUT_C0) & ~(1 << BUT_C1);
+	
+	PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1) & ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT);
+	PORTD |= (1 << BUT_D0) | (1 << BUT_D1);
+	
+	DDRD |= (1 << LED_D0) | (1 << LED_D1);
+	DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);	
 	
 	usbDeviceDisconnect();
-	_delay_ms(500);
+	_delay_ms(100);
 	usbDeviceConnect();
 	
 	usbInit();
@@ -31,6 +37,7 @@ int main(void)
     {
 		usbPoll();
 		_delay_ms(10);
+		
     }
 }
 
