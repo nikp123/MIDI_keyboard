@@ -9,6 +9,9 @@
 
 USB_PUBLIC uchar usbFunctionSetup(uchar data[8])
 {
+	if(data[1] == USB_LED_ON) PORTD |= (1 << LED_D0) | (1 << LED_D1);
+	else PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1);
+	
 	return 0;
 }
 
@@ -26,8 +29,8 @@ void main(void)
 	DDRD |= (1 << LED_D0) | (1 << LED_D1);
 	DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);	
 	
-	usbDeviceDisconnect();
-	_delay_ms(100);
+	//usbDeviceDisconnect();
+	//_delay_ms(100);
 	usbDeviceConnect();
 	
 	usbInit();

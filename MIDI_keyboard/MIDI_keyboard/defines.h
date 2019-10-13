@@ -13,3 +13,5 @@
 
 #define BUT_D0 6
 #define BUT_D1 7
+
+#define USB_LED_ON 1
