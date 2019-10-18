@@ -7,26 +7,25 @@
 #include <avr/pgmspace.h>
 
 #include "usbdrv/usbdrv.h"
-//#include "usbdrv/usbconfig.h"
 
-const static char PROGMEM deviceDescrMIDI[] = {
+const static uchar PROGMEM deviceDescrMIDI[] = {
 	0x12,					/* sizeof(usbDescriptorDevice): length of descriptor in bytes */
 	0x01,					/* descriptor type */
 	0x10, 0x01,				/* USB version supported */
-	0,						/* device class: defined at interface level */
-	0,						/* subclass */
-	0,						/* protocol */
-	8,						/* max packet size */
+	0x00,					/* device class: defined at interface level */
+	0x00,					/* subclass */
+	0x00,					/* protocol */
+	0x08,					/* max packet size */
 	USB_CFG_VENDOR_ID,		/* 2 bytes */
 	USB_CFG_DEVICE_ID,		/* 2 bytes */
 	USB_CFG_DEVICE_VERSION,	/* 2 bytes */
 	0x01,					/* manufacturer string index */
 	0x02,					/* product string index */
-	0,						/* serial number string index */
+	0x00,					/* serial number string index */
 	0x01,					/* number of configurations */
 };
 
-const static char PROGMEM configDescrMIDI[] = {	/* USB configuration descriptor */
+const static uchar PROGMEM configDescrMIDI[] = {
 	0x09,						/* sizeof(usbDescrConfig): length of descriptor in bytes */
 	USBDESCR_CONFIG,			/* descriptor type */
 	0x65, 0x00,					/* total length of data returned (including inlined descriptors) */
@@ -156,56 +155,106 @@ const static char PROGMEM configDescrMIDI[] = {	/* USB configuration descriptor 
 	3,			/* baAssocJackID (0) */
 };
 
+uchar curInt = 0x00;
+
+uchar statusDev[2] = {0x00, 0x00};
+const uchar statusInt[2] = {0x00, 0x00};
+
 uchar usbFunctionDescriptor(usbRequest_t * rq)
 {
-
-	if (rq->wValue.bytes[1] == USBDESCR_DEVICE) {
-		usbMsgPtr = (uchar *) deviceDescrMIDI;
+	if(rq -> wValue.bytes[1] == USBDESCR_DEVICE)
+	{
+		usbMsgPtr = (int)deviceDescrMIDI;
 		return sizeof(deviceDescrMIDI);
-		} else {		/* must be config descriptor */
-		usbMsgPtr = (uchar *) configDescrMIDI;
+	}
+	else if(rq -> wValue.bytes[1] == USBDESCR_CONFIG)
+	{
+		usbMsgPtr = (int)configDescrMIDI;
 		return sizeof(configDescrMIDI);
 	}
+	else return 0xFF;
 }
 
-static uchar sendEmptyFrame;
+uchar bReq;
+uchar wInd;
 
 USB_PUBLIC uchar usbFunctionSetup(uchar data[8])
 {
 	usbRequest_t *rq = (void *) data;
 
-	// DEBUG LED
-	PORTC ^= (1 << LED_D0) ^ (1 << LED_D1);
-
-	if ((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS) {	/* class request type */
-
-		/*  Prepare bulk-in endpoint to respond to early termination   */
-		if ((rq->bmRequestType & USBRQ_DIR_MASK) ==
-		USBRQ_DIR_HOST_TO_DEVICE)
-		sendEmptyFrame = 1;
+	bReq = rq -> bRequest;
+	wInd = rq -> wIndex.bytes[0];
+	
+	switch(bReq)
+	{
+		case USBRQ_GET_STATUS:
+			if((rq -> bmRequestType & USBRQ_RCPT_MASK) == USBRQ_RCPT_DEVICE)
+			{
+				usbMsgPtr = (int)&statusDev[0];
+				return 2;
+			}
+			else if((rq -> bmRequestType & USBRQ_RCPT_MASK) == USBRQ_RCPT_INTERFACE)
+			{
+				if((rq -> wIndex.bytes[0] == 0x00) | (rq -> wIndex.bytes[0] == 0x01))
+				{
+					usbMsgPtr = (int)&statusInt[0];
+					return 2;
+				}
+				else return USB_NO_MSG;
+			}
+			else if((rq -> bmRequestType & USBRQ_RCPT_MASK) == USBRQ_RCPT_ENDPOINT)
+			{
+				return USB_NO_MSG;; // need to finish 
+			}
+			else return USB_NO_MSG;
+		default: return USB_NO_MSG;
 	}
 
-	return 0xff;
+/*
+	if ((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS) // class request type 
+	{	
+
+		//  Prepare bulk-in endpoint to respond to early termination  
+		
+		if ((rq->bmRequestType & USBRQ_DIR_MASK) == USBRQ_DIR_HOST_TO_DEVICE)
+			sendEmptyFrame = 1;
+	}
+*/
 }
 
 uchar usbFunctionRead(uchar * data, uchar len)
 {
-	// DEBUG LED
-	PORTD ^= (1 << LED_D0) ^ (1 << LED_D1);
-
-	data[0] = 0;
-	data[1] = 0;
-	data[2] = 0;
-	data[3] = 0;
-	data[4] = 0;
-	data[5] = 0;
-	data[6] = 0;
-
-	return 7;
+	switch(bReq)
+	{
+		case USBRQ_GET_CONFIGURATION:
+			data[0] = 0x01;
+			return 1;
+		case USBRQ_GET_INTERFACE:
+			if(wInd == 0x00) 
+			{
+				data[0] = 0x00;
+				return 1;
+			}
+			else if(wInd == 0x01) 
+			{
+				data[0] = 0x01;
+				return 1;
+			}
+			else return 0xFF;
+		default: return 0xFF;
+	}
 }
 
 uchar usbFunctionWrite(uchar * data, uchar len)
 {
+	switch(bReq)
+	{
+		case USBRQ_SET_INTERFACE: 
+			curInt = wInd;
+			return 1;
+		default: return 0xFF;
+	}
+	
 	// DEBUG LED
 	PORTD ^= (1 << LED_D0) ^ (1 << LED_D1);
 	return 1;
@@ -245,7 +294,11 @@ void main(void)
 		usbPoll();
 		
 		for (i = 0; i <= 32766; i++) // ~ 3 ms
-		{ }
+		{
+			
+		}
+		
+		PORTD ^= (1 << LED_D0) ^ (1 << LED_D1);
     }
 }
 
