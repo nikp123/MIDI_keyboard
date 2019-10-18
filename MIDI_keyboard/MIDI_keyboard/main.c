@@ -8,9 +8,9 @@
 
 #include "usbdrv/usbdrv.h"
 
-const static uchar PROGMEM deviceDescrMIDI[] = {
+const static uchar PROGMEM devDesc[] = {
 	0x12,					/* sizeof(usbDescriptorDevice): length of descriptor in bytes */
-	0x01,					/* descriptor type */
+	USBDESCR_DEVICE,		/* descriptor type */
 	0x10, 0x01,				/* USB version supported */
 	0x00,					/* device class: defined at interface level */
 	0x00,					/* subclass */
@@ -25,7 +25,10 @@ const static uchar PROGMEM deviceDescrMIDI[] = {
 	0x01,					/* number of configurations */
 };
 
-const static uchar PROGMEM configDescrMIDI[] = {
+const static uchar PROGMEM confDesc[] = {
+	
+				/****************** Configuration Descriptor ******************/
+	
 	0x09,						/* sizeof(usbDescrConfig): length of descriptor in bytes */
 	USBDESCR_CONFIG,			/* descriptor type */
 	0x65, 0x00,					/* total length of data returned (including inlined descriptors) */
@@ -35,124 +38,123 @@ const static uchar PROGMEM configDescrMIDI[] = {
 	USBATTR_BUSPOWER,			/* attributes */
 	USB_CFG_MAX_BUS_POWER / 2,	/* max USB current in 2mA units */
 	
+				/************** AudioControl Interface Descriptor **************/
 	
-	
-	0x09,				/* sizeof(usbDescrInterface): length of descriptor in bytes */
-	USBDESCR_INTERFACE,	/* descriptor type */
-	0,					/* index of this interface */
-	0,					/* alternate setting for this interface */
-	0,					/* endpoints excl 0: number of endpoint descriptors to follow */
-	0x01,
-	0x01,
-	0,
-	0,					/* string index for interface */
+	// Standard AC Interface Descriptor:
+	0x09,					/* sizeof(usbDescrInterface): length of descriptor in bytes */
+	USBDESCR_INTERFACE,		/* descriptor type */
+	0x00,					/* index of this interface */
+	0x00,					/* alternate setting for this interface */
+	0x00,					/* endpoints excl 0: number of endpoint descriptors to follow */
+	0x01,					/* interface class: AUDIO */
+	0x01,					/* interface subclass: AUDIO_CONTROL */
+	0x00,					/* interface protocol */
+	0x00,					/* string index for interface */
 
+	// Class-specific AC Interface Descriptor (header only, cause audio functionality does not contain):
+	0x09,					/* sizeof(usbDescrCDC_HeaderFn): length of descriptor in bytes */
+	USBDESCR_CS_INTERFACE,	/* descriptor type */
+	0x01,					/* descriptor subtype: header functional descriptor */
+	0x00, 0x01,				/* bcdADC: revision of class specification - 1.0 */
+	0x09, 0x00,				/* wTotalLength */
+	0x01,					/* number of streaming interfaces */
+	0x01,					/* MIDIStreaming interface 1 belongs to this AudioControl interface */
 
+				/************* MIDIStreaming Interface Descriptors *************/
 
-	0x09,		/* sizeof(usbDescrCDC_HeaderFn): length of descriptor in bytes */
-	0x24,		/* descriptor type */
-	0x01,		/* header functional descriptor */
-	0x00, 0x01,	/* bcdADC */
-	0x09, 0x00,	/* wTotalLength */
-	0x01,
-	0x01,
+	// Standard MS Interface Descriptor:
+	0x09,					/* length of descriptor in bytes */
+	USBDESCR_INTERFACE,		/* descriptor type */
+	0x01,					/* index of this interface */
+	0x00,					/* alternate setting for this interface */
+	0x02,					/* endpoints excl 0: number of endpoint descriptors to follow */
+	0x01,					/* interface class: AUDIO */
+	0x03,					/* interface subclass: MIDIStreaming */
+	0x00,					/* interface protocol */
+	0x00,					/* string index for interface */
+		
+	// Class-specific MS Interface Descriptor:
+	0x07,					/* length of descriptor in bytes */
+	USBDESCR_CS_INTERFACE,	/* descriptor type */
+	0x01,					/* descriptor subtype: header functional descriptor */
+	0x00, 0x01,				/* bcdADC: revision of class specification */
+	0x41, 0x00,				/* total size of class-specific descriptors */
 
+	// MIDI IN Jack Descriptor:
+	0x06,					/* size of this descriptor */
+	USBDESCR_CS_INTERFACE,	/* descriptor type */
+	0x02,					/* descriptor subtype: MIDI_IN_JACK */
+	0x01,					/* jackType: EMBEDDED */
+	0x01,					/* id of this jack */
+	0x00,					/* iJack */
 
+	// MIDI Adapter MIDI IN Jack Descriptor (External):
+	0x06,					/* size of this descriptor */
+	USBDESCR_CS_INTERFACE,	/* descriptor type */
+	0x02,					/* descriptor subtype: MIDI_IN_JACK */
+	0x02,					/* jackType: EXTERNAL */
+	0x02,					/* id of this jack */
+	0x00,					/* iJack */
 
-	0x09,				/* length of descriptor in bytes */
-	USBDESCR_INTERFACE,	/* descriptor type */
-	0x01,				/* index of this interface */
-	0,					/* alternate setting for this interface */
-	0x02,				/* endpoints excl 0: number of endpoint descriptors to follow */
-	0x01,				/* AUDIO */
-	0x03,				/* MS */
-	0,					/* unused */
-	0,					/* string index for interface */
+	// MIDI OUT Jack Descriptor:
+	0x09,					/* length of descriptor in bytes */
+	USBDESCR_CS_INTERFACE,	/* descriptor type */
+	0x03,					/* descriptor subtype: MIDI_OUT_JACK */
+	0x01,					/* jackType: EMBEDDED */
+	0x03,					/* id of this jack */
+	0x01,					/* number of Input Pins of this Jack */
+	0x02,					/* id of the Entity to which this Pin is connected: BaSourceID */
+	0x01,					/* output Pin number of the Entity to which this Input Pin is connected: BaSourcePin */
+	0x00,					/* iJack */
 
+	// MIDI Adapter MIDI OUT Jack Descriptor (External):
+	0x09,					/* length of descriptor in bytes */
+	USBDESCR_CS_INTERFACE,	/* descriptor type */
+	0x03,					/* descriptor subtype: MIDI_OUT_JACK */
+	0x02,					/* jackType: EXTERNAL */
+	0x04,					/* id of this jack */
+	0x01,					/* number of Input Pins of this Jack */
+	0x01,					/* id of the Entity to which this Pin is connected: BaSourceID */
+	0x01,					/* output Pin number of the Entity to which this Input Pin is connected: BaSourcePin */
+	0x00,					/* iJack */
 
+				/************* Bulk OUT Endpoint Descriptors *************/
 
-	0x07,		/* length of descriptor in bytes */
-	0x24,		/* descriptor type */
-	0x01,		/* header functional descriptor */
-	0x00, 0x01,	/* bcdADC */
-	0x41, 0x00,	/* wTotalLength */
+	// Standard Bulk OUT Endpoint Descriptor:
+	0x09,					/* size of this descriptor */
+	USBDESCR_ENDPOINT,		/* descriptor type */
+	0x01,					/* endpoint address: OUT endpoint number 1 */
+	0x03,					/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
+	0x08, 0x00,				/* max packet size */
+	10,						/* bIntervall in ms */
+	0x00,					/* bRefresh */
+	0x00,					/* bSyncAddress */
 
+	// Class-specific MS Bulk OUT Endpoint Descriptor:
+	0x05,					/* length of descriptor in bytes */
+	USBDESCR_CS_ENDPOINT,	/* descriptor type */
+	0x01,					/* descriptor subtype: MS_GENERAL */
+	0x01,					/* number of embedded MIDI IN Jacks */
+	0x01,					/* id of the Embedded MIDI IN Jack */
 
+				/************* Bulk IN Endpoint Descriptors *************/
 
-	6,			/* bLength */
-	36,			/* descriptor type */
-	2,			/* MIDI_IN_JACK desc subtype */
-	1,			/* EMBEDDED bJackType */
-	1,			/* bJackID */
-	0,			/* iJack */
+	// Standard Bulk IN Endpoint Descriptor:
+	0x09,					/* size of this descriptor */
+	USBDESCR_ENDPOINT,		/* descriptor type */
+	0x81,					/* endpoint address: IN endpoint number 1 */
+	0x03,					/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
+	0x08, 0x00,				/* max packet size */
+	10,						/* bIntervall in ms */
+	0x00,					/* bRefresh */
+	0x00,					/* bSyncAddress */
 
-	6,			/* bLength */
-	36,			/* descriptor type */
-	2,			/* MIDI_IN_JACK desc subtype */
-	2,			/* EXTERNAL bJackType */
-	2,			/* bJackID */
-	0,			/* iJack */
-
-	//B.4.4 MIDI OUT Jack Descriptor
-	9,			/* length of descriptor in bytes */
-	36,			/* descriptor type */
-	3,			/* MIDI_OUT_JACK descriptor */
-	1,			/* EMBEDDED bJackType */
-	3,			/* bJackID */
-	1,			/* No of input pins */
-	2,			/* BaSourceID */
-	1,			/* BaSourcePin */
-	0,			/* iJack */
-
-	9,			/* bLength of descriptor in bytes */
-	36,			/* bDescriptorType */
-	3,			/* MIDI_OUT_JACK bDescriptorSubtype */
-	2,			/* EXTERNAL bJackType */
-	4,			/* bJackID */
-	1,			/* bNrInputPins */
-	1,			/* baSourceID (0) */
-	1,			/* baSourcePin (0) */
-	0,			/* iJack */
-
-
-	// B.5 Bulk OUT Endpoint Descriptors
-
-	//B.5.1 Standard Bulk OUT Endpoint Descriptor
-	9,			/* bLenght */
-	USBDESCR_ENDPOINT,	/* bDescriptorType = endpoint */
-	0x1,			/* bEndpointAddress OUT endpoint number 1 */
-	3,			/* bmAttributes: 2:Bulk, 3:Interrupt endpoint */
-	8, 0,			/* wMaxPacketSize */
-	10,			/* bIntervall in ms */
-	0,			/* bRefresh */
-	0,			/* bSyncAddress */
-
-	// B.5.2 Class-specific MS Bulk OUT Endpoint Descriptor
-	5,			/* bLength of descriptor in bytes */
-	37,			/* bDescriptorType */
-	1,			/* bDescriptorSubtype */
-	1,			/* bNumEmbMIDIJack  */
-	1,			/* baAssocJackID (0) */
-
-
-	//B.6 Bulk IN Endpoint Descriptors
-
-	//B.6.1 Standard Bulk IN Endpoint Descriptor
-	9,			/* bLenght */
-	USBDESCR_ENDPOINT,	/* bDescriptorType = endpoint */
-	0x81,			/* bEndpointAddress IN endpoint number 1 */
-	3,			/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
-	8, 0,			/* wMaxPacketSize */
-	10,			/* bIntervall in ms */
-	0,			/* bRefresh */
-	0,			/* bSyncAddress */
-
-	// B.6.2 Class-specific MS Bulk IN Endpoint Descriptor
-	5,			/* bLength of descriptor in bytes */
-	37,			/* bDescriptorType */
-	1,			/* bDescriptorSubtype */
-	1,			/* bNumEmbMIDIJack (0) */
-	3,			/* baAssocJackID (0) */
+	// Class-specific MS Bulk IN Endpoint Descriptor:
+	0x05,					/* length of descriptor in bytes */
+	USBDESCR_CS_ENDPOINT,	/* descriptor type */
+	0x01,					/* descriptor subtype: MS_GENERAL */
+	0x01,					/* number of embedded MIDI OUT Jacks */
+	0x03,					/* id of the Embedded MIDI OUT Jack */
 };
 
 uchar curInt = 0x00;
@@ -164,13 +166,13 @@ uchar usbFunctionDescriptor(usbRequest_t * rq)
 {
 	if(rq -> wValue.bytes[1] == USBDESCR_DEVICE)
 	{
-		usbMsgPtr = (int)deviceDescrMIDI;
-		return sizeof(deviceDescrMIDI);
+		usbMsgPtr = (int)devDesc;
+		return sizeof(devDesc);
 	}
 	else if(rq -> wValue.bytes[1] == USBDESCR_CONFIG)
 	{
-		usbMsgPtr = (int)configDescrMIDI;
-		return sizeof(configDescrMIDI);
+		usbMsgPtr = (int)confDesc;
+		return sizeof(confDesc);
 	}
 	else return 0xFF;
 }
@@ -254,10 +256,6 @@ uchar usbFunctionWrite(uchar * data, uchar len)
 			return 1;
 		default: return 0xFF;
 	}
-	
-	// DEBUG LED
-	PORTD ^= (1 << LED_D0) ^ (1 << LED_D1);
-	return 1;
 }
 
 void usbFunctionWriteOut(uchar * data, uchar len)
@@ -268,7 +266,7 @@ void usbFunctionWriteOut(uchar * data, uchar len)
 
 void main(void)
 {
-	volatile int i;
+	volatile unsigned int i;
 	
 	PORTB |= (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
 	DDRB &= ~(1 << BUT_B0) & ~(1 << BUT_B1) & ~(1 << BUT_B2) & ~(1 << BUT_B3);
@@ -293,9 +291,11 @@ void main(void)
     {
 		usbPoll();
 		
-		for (i = 0; i <= 32766; i++) // ~ 3 ms
+		for (i = 0; i <= 32766; i++) // ~ 9 ms
 		{
-			
+			asm('nop');
+			asm('nop');
+			asm('nop');
 		}
 		
 		PORTD ^= (1 << LED_D0) ^ (1 << LED_D1);
