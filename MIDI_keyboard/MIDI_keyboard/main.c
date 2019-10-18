@@ -293,9 +293,9 @@ void main(void)
 		
 		for (i = 0; i <= 32766; i++) // ~ 9 ms
 		{
-			asm('nop');
-			asm('nop');
-			asm('nop');
+			asm("nop");
+			asm("nop");
+			asm("nop");
 		}
 		
 		PORTD ^= (1 << LED_D0) ^ (1 << LED_D1);
