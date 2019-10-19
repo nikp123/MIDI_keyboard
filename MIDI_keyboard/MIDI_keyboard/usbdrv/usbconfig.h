@@ -44,7 +44,7 @@ section at the end of this file).
  * interrupt, the USB interrupt will also be triggered at Start-Of-Frame
  * markers every millisecond.]
  */
-			#define USB_CFG_CLOCK_KHZ       (F_CPU/1000)
+#define USB_CFG_CLOCK_KHZ       (F_CPU/1000)
 /* Clock rate of the AVR in kHz. Legal values are 12000, 12800, 15000, 16000,
  * 16500, 18000 and 20000. The 12.8 MHz and 16.5 MHz versions of the code
  * require no crystal, they tolerate +/- 1% deviation from the nominal
@@ -53,7 +53,7 @@ section at the end of this file).
  * Since F_CPU should be defined to your actual clock rate anyway, you should
  * not need to modify this setting.
  */
-			#define USB_CFG_CHECK_CRC       0
+#define USB_CFG_CHECK_CRC       0
 /* Define this to 1 if you want that the driver checks integrity of incoming
  * data packets (CRC checks). CRC checks cost quite a bit of code size and are
  * currently only available for 18 MHz crystal clock. You must choose
@@ -87,7 +87,7 @@ section at the end of this file).
  * configured below) and a catch-all default interrupt-in endpoint as above.
  * You must also define USB_CFG_HAVE_INTRIN_ENDPOINT to 1 for this feature.
  */
-			#define USB_CFG_EP3_NUMBER              3
+#define USB_CFG_EP3_NUMBER              3
 /* If the so-called endpoint 3 is used, it can now be configured to any other
  * endpoint number (except 0) with this macro. Default if undefined is 3.
  */
@@ -97,13 +97,13 @@ section at the end of this file).
  * Since the token is toggled BEFORE sending any data, the first packet is
  * sent with the oposite value of this configuration!
  */
-#define USB_CFG_IMPLEMENT_HALT          1
+#define USB_CFG_IMPLEMENT_HALT          0
 /* Define this to 1 if you also want to implement the ENDPOINT_HALT feature
  * for endpoint 1 (interrupt endpoint). Although you may not need this feature,
  * it is required by the standard. We have made it a config option because it
  * bloats the code considerably.
  */
-			#define USB_CFG_SUPPRESS_INTR_CODE      0
+#define USB_CFG_SUPPRESS_INTR_CODE      0
 /* Define this to 1 if you want to declare interrupt-in endpoints, but don't
  * want to send any data over them. If this macro is defined to 1, functions
  * usbSetInterrupt() and usbSetInterrupt3() are omitted. This is useful if
@@ -147,12 +147,12 @@ section at the end of this file).
  * of the macros usbDisableAllRequests() and usbEnableAllRequests() in
  * usbdrv.h.
  */
-			#define USB_CFG_DRIVER_FLASH_PAGE       0
+#define USB_CFG_DRIVER_FLASH_PAGE       0
 /* If the device has more than 64 kBytes of flash, define this to the 64 k page
  * where the driver's constants (descriptors) are located. Or in other words:
  * Define this to 1 for boot loaders on the ATMega128.
  */
-			#define USB_CFG_LONG_TRANSFERS          0
+#define USB_CFG_LONG_TRANSFERS          0
 /* Define this to 1 if you want to send/receive blocks of more than 254 bytes
  * in a single control-in or control-out transfer. Note that the capability
  * for long transfers increases the driver size.
@@ -173,7 +173,7 @@ section at the end of this file).
 /* This macro (if defined) is executed when a USB SET_ADDRESS request was
  * received.
  */
-			#define USB_COUNT_SOF                   0
+#define USB_COUNT_SOF                   0
 /* define this macro to 1 if you need the global variable "usbSofCount" which
  * counts SOF packets. This feature requires that the hardware interrupt is
  * connected to D- instead of D+.
@@ -197,7 +197,7 @@ section at the end of this file).
  * Please note that Start Of Frame detection works only if D- is wired to the
  * interrupt, not D+. THIS IS DIFFERENT THAN MOST EXAMPLES!
  */
-			#define USB_CFG_CHECK_DATA_TOGGLING     0
+#define USB_CFG_CHECK_DATA_TOGGLING     0
 /* define this macro to 1 if you want to filter out duplicate data packets
  * sent by the host. Duplicates occur only as a consequence of communication
  * errors, when the host does not receive an ACK. Please note that you need to
@@ -205,11 +205,11 @@ section at the end of this file).
  * usbFunctionWrite(). Use the global usbCurrentDataToken and a static variable
  * for each control- and out-endpoint to check for duplicate packets.
  */
-			#define USB_CFG_HAVE_MEASURE_FRAME_LENGTH   0
+#define USB_CFG_HAVE_MEASURE_FRAME_LENGTH   0
 /* define this macro to 1 if you want the function usbMeasureFrameLength()
  * compiled in. This function can be used to calibrate the AVR's RC oscillator.
  */
-			#define USB_USE_FAST_CRC                0
+#define USB_USE_FAST_CRC                0
 /* The assembler module has two implementations for the CRC algorithm. One is
  * faster, the other is smaller. This CRC routine is only used for transmitted
  * messages where timing is not critical. The faster routine needs 31 cycles
@@ -273,15 +273,15 @@ section at the end of this file).
 /* See USB specification if you want to conform to an existing device class.
  * Class 0xff is "vendor specific".
  */
-#define USB_CFG_INTERFACE_CLASS     1   /* define class here if not at device level */
-#define USB_CFG_INTERFACE_SUBCLASS  3
+#define USB_CFG_INTERFACE_CLASS     1   /* define class here if not at device level: AUDIO */
+#define USB_CFG_INTERFACE_SUBCLASS  3	/* MIDI streaming */
 #define USB_CFG_INTERFACE_PROTOCOL  0
 /* See USB specification if you want to conform to an existing device class or
  * protocol. The following classes must be set at interface level:
  * HID class is 3, no subclass and protocol required (but may be useful!)
  * CDC class is 2, use subclass 2 and protocol 1 for ACM
  */
-// #define USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH    0  /* total length of report descriptor */
+#define USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH    0  /* total length of report descriptor */
 /* Define this to the length of the HID report descriptor, if you implement
  * an HID device. Otherwise don't define it or define it to 0.
  * If you use this define, you must add a PROGMEM character array named

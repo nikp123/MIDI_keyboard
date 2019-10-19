@@ -1,5 +1,7 @@
 #define F_CPU 16000000L
 
+#define UNUSED 0x00
+
 #define LED_D0 4
 #define LED_D1 5
 
@@ -13,5 +15,3 @@
 
 #define BUT_D0 6
 #define BUT_D1 7
-
-#define USB_LED_ON 1

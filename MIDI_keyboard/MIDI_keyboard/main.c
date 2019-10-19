@@ -12,16 +12,16 @@ const static uchar PROGMEM devDesc[] = {
 	0x12,					/* sizeof(usbDescriptorDevice): length of descriptor in bytes */
 	USBDESCR_DEVICE,		/* descriptor type */
 	0x10, 0x01,				/* USB version supported */
-	0x00,					/* device class: defined at interface level */
-	0x00,					/* subclass */
-	0x00,					/* protocol */
+	UNUSED,					/* device class: defined at interface level */
+	UNUSED,					/* subclass */
+	UNUSED,					/* protocol */
 	0x08,					/* max packet size */
 	USB_CFG_VENDOR_ID,		/* 2 bytes */
 	USB_CFG_DEVICE_ID,		/* 2 bytes */
 	USB_CFG_DEVICE_VERSION,	/* 2 bytes */
 	0x01,					/* manufacturer string index */
 	0x02,					/* product string index */
-	0x00,					/* serial number string index */
+	UNUSED,					/* serial number string index */
 	0x01,					/* number of configurations */
 };
 
@@ -34,7 +34,7 @@ const static uchar PROGMEM confDesc[] = {
 	0x65, 0x00,					/* total length of data returned (including inlined descriptors) */
 	0x02,						/* number of interfaces in this configuration */
 	0x01,						/* index of this configuration */
-	0x00,						/* configuration name string index */
+	UNUSED,						/* configuration name string index */
 	USBATTR_BUSPOWER,			/* attributes */
 	USB_CFG_MAX_BUS_POWER / 2,	/* max USB current in 2mA units */
 	
@@ -48,8 +48,8 @@ const static uchar PROGMEM confDesc[] = {
 	0x00,					/* endpoints excl 0: number of endpoint descriptors to follow */
 	0x01,					/* interface class: AUDIO */
 	0x01,					/* interface subclass: AUDIO_CONTROL */
-	0x00,					/* interface protocol */
-	0x00,					/* string index for interface */
+	UNUSED,					/* interface protocol */
+	UNUSED,					/* string index for interface */
 
 	// Class-specific AC Interface Descriptor (header only, cause audio functionality does not contain):
 	0x09,					/* sizeof(usbDescrCDC_HeaderFn): length of descriptor in bytes */
@@ -70,8 +70,8 @@ const static uchar PROGMEM confDesc[] = {
 	0x02,					/* endpoints excl 0: number of endpoint descriptors to follow */
 	0x01,					/* interface class: AUDIO */
 	0x03,					/* interface subclass: MIDIStreaming */
-	0x00,					/* interface protocol */
-	0x00,					/* string index for interface */
+	UNUSED,					/* interface protocol */
+	UNUSED,					/* string index for interface */
 		
 	// Class-specific MS Interface Descriptor:
 	0x07,					/* length of descriptor in bytes */
@@ -86,7 +86,7 @@ const static uchar PROGMEM confDesc[] = {
 	0x02,					/* descriptor subtype: MIDI_IN_JACK */
 	0x01,					/* jackType: EMBEDDED */
 	0x01,					/* id of this jack */
-	0x00,					/* iJack */
+	UNUSED,					/* iJack */
 
 	// MIDI Adapter MIDI IN Jack Descriptor (External):
 	0x06,					/* size of this descriptor */
@@ -94,7 +94,7 @@ const static uchar PROGMEM confDesc[] = {
 	0x02,					/* descriptor subtype: MIDI_IN_JACK */
 	0x02,					/* jackType: EXTERNAL */
 	0x02,					/* id of this jack */
-	0x00,					/* iJack */
+	UNUSED,					/* iJack */
 
 	// MIDI OUT Jack Descriptor:
 	0x09,					/* length of descriptor in bytes */
@@ -105,7 +105,7 @@ const static uchar PROGMEM confDesc[] = {
 	0x01,					/* number of Input Pins of this Jack */
 	0x02,					/* id of the Entity to which this Pin is connected: BaSourceID */
 	0x01,					/* output Pin number of the Entity to which this Input Pin is connected: BaSourcePin */
-	0x00,					/* iJack */
+	UNUSED,					/* iJack */
 
 	// MIDI Adapter MIDI OUT Jack Descriptor (External):
 	0x09,					/* length of descriptor in bytes */
@@ -116,7 +116,7 @@ const static uchar PROGMEM confDesc[] = {
 	0x01,					/* number of Input Pins of this Jack */
 	0x01,					/* id of the Entity to which this Pin is connected: BaSourceID */
 	0x01,					/* output Pin number of the Entity to which this Input Pin is connected: BaSourcePin */
-	0x00,					/* iJack */
+	UNUSED,					/* iJack */
 
 				/************* Bulk OUT Endpoint Descriptors *************/
 
@@ -126,9 +126,9 @@ const static uchar PROGMEM confDesc[] = {
 	0x01,					/* endpoint address: OUT endpoint number 1 */
 	0x03,					/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
 	0x08, 0x00,				/* max packet size */
-	10,						/* bIntervall in ms */
-	0x00,					/* bRefresh */
-	0x00,					/* bSyncAddress */
+	2,						/* bIntervall in ms */
+	UNUSED,					/* bRefresh */
+	UNUSED,					/* bSyncAddress */
 
 	// Class-specific MS Bulk OUT Endpoint Descriptor:
 	0x05,					/* length of descriptor in bytes */
@@ -145,9 +145,9 @@ const static uchar PROGMEM confDesc[] = {
 	0x81,					/* endpoint address: IN endpoint number 1 */
 	0x03,					/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
 	0x08, 0x00,				/* max packet size */
-	10,						/* bIntervall in ms */
-	0x00,					/* bRefresh */
-	0x00,					/* bSyncAddress */
+	2,						/* bIntervall in ms */
+	UNUSED,					/* bRefresh */
+	UNUSED,					/* bSyncAddress */
 
 	// Class-specific MS Bulk IN Endpoint Descriptor:
 	0x05,					/* length of descriptor in bytes */
