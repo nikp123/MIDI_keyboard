@@ -135,8 +135,8 @@ void main(void)
 	uchar i;
 	
 	uchar adc_ch = 0;
-	char adc_old[2] = {0x7F, 0x7F};
-	char adc_temp;
+	uchar adc_old[2] = {0x7F, 0x7F};
+	uchar adc_temp;
 	
 	uchar ind_midi_msg = 0; // in one pass of the main cycle - transmit one MIDI msg, index of key which will transmit in MIDI msg
 	uchar midiMsg[4];
@@ -249,9 +249,11 @@ void main(void)
 			ADCSRA |= (1 << ADSC);
 			
 			while(ADCSRA & (1 << ADSC)) { } // wait conversion
-			adc_temp = adc_old[adc_ch] - ADCH;
 			
-			if((adc_temp > THRESHOLD) || (adc_temp < (-THRESHOLD)))
+			if(adc_old[adc_ch] >= ADCH) adc_temp = adc_old[adc_ch] - ADCH;
+			else adc_temp = ADCH - adc_old[adc_ch];
+			
+			if(adc_temp > THRESHOLD)
 			{
 				midiMsg[0] = 0x0B;
 				midiMsg[1] = 0xB0;					// "Control Change" event: 0b1011_NNNN
