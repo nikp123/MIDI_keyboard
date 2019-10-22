@@ -18,9 +18,6 @@
 		(PIND & ((1 << BUT_D0) | (1 << BUT_D1)))	
 */
 
-uchar key[3]; // keys status: for "majoritar"
-uchar ind_key_poll = 0;
-
 uchar curInt = 0x01;
 uchar bReq;
 uchar wInd;
@@ -121,28 +118,6 @@ void usbFunctionWriteOut(uchar * data, uchar len)
 	PORTD ^= (1 << LED_D0);
 }
 
-ISR(TIMER2_COMP_vect)
-{
-	sei();
-	
-	key[ind_key_poll] = KEY_STATUS;
-	ind_key_poll++;
-	
-	if(ind_key_poll == 3)
-	{
-		TCNT1 = 0x0000;
-		TIMSK = (1 << OCIE1A); // timer 16 bit inter en, 8 bit inter dsb
-		ind_key_poll = 0;
-	}
-}
-
-ISR(TIMER1_COMPA_vect)
-{
-	sei();
-	TCNT2 = 0x00;
-	TIMSK = (1 << OCIE2); // timer 8 bit inter en, 16 bit inter dsb
-}
-
 void main(void)
 {
 	const uchar keyCode [8] = 
@@ -156,20 +131,24 @@ void main(void)
 		0x47, //   6-D -> "H"
 		0x48  //   7-D -> "C"
 	};
-	uchar temp;
 	
 	uchar i;
 	uchar ind_midi_msg = 0; // in one pass of the main cycle - transmit one MIDI msg, index of key which will transmit in MIDI msg
 	uchar midiMsg[4];
 	
-	//uchar key_old = 0xFF; 
-	uchar key_old = 0xFC; // DEBUG: fast imitate of release key
+	uchar key[3] = {0xFF, 0xFF, 0xFF,}; // keys status: for "majoritar"
+	
+	uchar cnt_keys_poll = 0;
+	uchar ind_key_poll = 0;
+	
+	uchar key_old = 0xFF; 
+	//uchar key_old = 0xFC; // DEBUG: fast imitate of release key
 	
 	uchar key_mask;
 	uchar key_num_ch[8] = // number of keys that was changed: release (2) or press (1), don't changed (0):
 							{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, };
 	
-	volatile uchar flag_r_or_p; // release or pressed key flag
+	uchar flag_r_or_p; // release or pressed key flag
 	
 	PORTB = (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
 	//DDRB = ~(1 << BUT_B0) & ~(1 << BUT_B1) & ~(1 << BUT_B2) & ~(1 << BUT_B3);
@@ -183,26 +162,21 @@ void main(void)
 	DDRD = (1 << LED_D0) | (1 << LED_D1);
 	//DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);
 	
-	TCCR2 = (1 << WGM21) | (1 << CS21) | (1 << CS22); // prescaller 256 (0xFF <=> 4.08 ms)
-	OCR2 = 0x7F;
-	
-	TCCR1B = (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode with OCR1A, 16 bit timer presc = 64 (0xFFFF <=> 26 ms)
-	OCR1A = 0x7FFF;
-	
-	TIMSK = (1 << OCIE1A); // enable interrupt for 16 bit timer channel A
-	
 	usbDeviceConnect();
 	usbInit();
     
 	sei();
 	while (1) 
     {
-		//asm("PUSH TIMSK");
-		temp = TIMSK;
-		TIMSK = 0x00;
-			usbPoll();
-		TIMSK = temp;	
-		//asm("POP TIMSK");
+		usbPoll(); // ~ 154 us
+		
+		if(cnt_keys_poll == DEBOUNCE)
+		{
+			key[ind_key_poll] = KEY_STATUS;
+			
+			if(ind_key_poll < 3) ind_key_poll++;
+			else ind_key_poll = 0;
+		}
 		
 		// send MIDI msg if keys was changed:
 		if(usbInterruptIsReady())
@@ -216,7 +190,7 @@ void main(void)
 				
 				for(i = 0; i <= 7; i++)
 				{
-					flag_r_or_p = (key_old & 0x01) - (key[0] & 0x01); // DEBUG
+					flag_r_or_p = (key_old & 0x01) - (key[0] & 0x01);
 					
 					if(flag_r_or_p == 0x01) key_num_ch[i] = 1; // key was pressed
 					else if(flag_r_or_p == 0xFF) key_num_ch[i] = 2; // released
@@ -258,20 +232,17 @@ void main(void)
 			midiMsg[3] = 0x00;
 		}
 		
-		//asm("PUSH TIMSK");
-		temp = TIMSK;
-		TIMSK = 0x00;
-			usbSetInterrupt(midiMsg, 4);
-		TIMSK = temp;
-		//asm("POP TIMSK");
+		usbSetInterrupt(midiMsg, 4); // ~ 359 us
 		
-		if(ind_midi_msg == 7) ind_midi_msg = 0;
-		else ind_midi_msg++;
+		if(ind_midi_msg < 7) ind_midi_msg++;
+		else ind_midi_msg = 0;
+		
+		if(ind_key_poll < 3) cnt_keys_poll++; // one main cycle pass ~ 0.5 ms
+		else cnt_keys_poll = 0;
 		
 ERROR:	if(curInt == 0x00) 
 		{
 			PORTD |= (1 << LED_D0) | (1 << LED_D1); // wrong interface: required reset
-			TIMSK = 0;
 			usbPoll();
 			goto ERROR;
 		}
