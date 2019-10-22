@@ -1,7 +1,7 @@
 #define F_CPU 16000000L
 
 #define UNUSED 0x00
-#define  DEBOUNCE 20 /* in tacts */
+#define  DEBOUNCE 50 /* in tacts */
 
 #define LED_D0 4
 #define LED_D1 5

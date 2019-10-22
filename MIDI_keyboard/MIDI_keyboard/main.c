@@ -176,6 +176,8 @@ void main(void)
 			
 			if(ind_key_poll < 3) ind_key_poll++;
 			else ind_key_poll = 0;
+			
+			PORTD ^= (1 << LED_D0);
 		}
 		
 		// send MIDI msg if keys was changed:
@@ -199,6 +201,7 @@ void main(void)
 					key_old >>= 1;
 				}
 				
+				key[0] = key[1];
 				key_old = key[1];
 				ind_midi_msg = 0;
 				
@@ -214,6 +217,7 @@ void main(void)
 			midiMsg[3] = 0x7F;					// velocity
 				
 			key_num_ch[ind_midi_msg] = 0;
+			usbSetInterrupt(midiMsg, 4);
 		}
 		else if(key_num_ch[ind_midi_msg] == 2)
 		{
@@ -223,31 +227,30 @@ void main(void)
 			midiMsg[3] = 0x00;
 				
 			key_num_ch[ind_midi_msg] = 0;
+			usbSetInterrupt(midiMsg, 4);
 		}
-		else // empty msg (need to replaced by ADC msg)
+		/*else // empty msg (need to replaced by ADC msg)
 		{
 			midiMsg[0] = 0x00;
 			midiMsg[1] = 0xFD;					// "Undefined" (reserved): 0b1111_1101
 			midiMsg[2] = 0x00;
 			midiMsg[3] = 0x00;
-		}
+		}*/
 		
-		usbSetInterrupt(midiMsg, 4); // ~ 359 us
+		//usbSetInterrupt(midiMsg, 4); // ~ 359 us
 		
 		if(ind_midi_msg < 7) ind_midi_msg++;
 		else ind_midi_msg = 0;
 		
-		if(ind_key_poll < 3) cnt_keys_poll++; // one main cycle pass ~ 0.5 ms
-		else cnt_keys_poll = 0;
+		if(cnt_keys_poll < DEBOUNCE) cnt_keys_poll++; // one main cycle pass ~ 0.5 ms
+		else if(ind_key_poll == 3) cnt_keys_poll = 0;
 		
 ERROR:	if(curInt == 0x00) 
 		{
-			PORTD |= (1 << LED_D0) | (1 << LED_D1); // wrong interface: required reset
+			PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1); // wrong interface: required reset
 			usbPoll();
 			goto ERROR;
 		}
-		
-		PORTD ^= (1 << LED_D0);
     }
 }
 
