@@ -5,7 +5,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
-#include <util/delay.h>
 
 #include "usbdrv/usbdrv.h"
 #include "descriptors.h"
@@ -18,6 +17,9 @@
 		(PINC & ((1 << BUT_C0) | (1 << BUT_C1))) | 
 		(PIND & ((1 << BUT_D0) | (1 << BUT_D1)))	
 */
+
+uchar key[3]; // keys status: for "majoritar"
+uchar ind_key_poll = 0;
 
 uchar curInt = 0x01;
 uchar bReq;
@@ -115,14 +117,36 @@ uchar usbFunctionWrite(uchar * data, uchar len)
 
 void usbFunctionWriteOut(uchar * data, uchar len)
 {
-	// DEBUG LED
+	// DEBUG LED:
 	PORTD ^= (1 << LED_D0);
+}
+
+ISR(TIMER2_COMP_vect)
+{
+	sei();
+	
+	key[ind_key_poll] = KEY_STATUS;
+	ind_key_poll++;
+	
+	if(ind_key_poll == 3)
+	{
+		TCNT1 = 0x0000;
+		TIMSK = (1 << OCIE1A); // timer 16 bit inter en, 8 bit inter dsb
+		ind_key_poll = 0;
+	}
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+	sei();
+	TCNT2 = 0x00;
+	TIMSK = (1 << OCIE2); // timer 8 bit inter en, 16 bit inter dsb
 }
 
 void main(void)
 {
 	const uchar keyCode [8] = 
-	{		// PIN-PORT -> "note"
+	{		// PIN-PORT -> "note":
 		0x3C, //   0-B -> "C" middle octave: key code "0"
 		0x3E, //   1-B -> "D"
 		0x40, //   2-B -> "E"
@@ -132,28 +156,40 @@ void main(void)
 		0x47, //   6-D -> "H"
 		0x48  //   7-D -> "C"
 	};
+	uchar temp;
 	
 	uchar i;
+	uchar ind_midi_msg = 0; // in one pass of the main cycle - transmit one MIDI msg, index of key which will transmit in MIDI msg
 	uchar midiMsg[4];
 	
-	uchar key[3]; // keys status: for "majoritar"
-	uchar key_old = 0xFF; 
-	uchar key_mask;
+	//uchar key_old = 0xFF; 
+	uchar key_old = 0xFC; // DEBUG: fast imitate of release key
 	
-	uchar key_num_ch[8] = // number of keys that was changed: release (2) or press (1), don't changed (0)
+	uchar key_mask;
+	uchar key_num_ch[8] = // number of keys that was changed: release (2) or press (1), don't changed (0):
 							{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, };
 	
-	PORTB |= (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
-	DDRB &= ~(1 << BUT_B0) & ~(1 << BUT_B1) & ~(1 << BUT_B2) & ~(1 << BUT_B3);
+	volatile uchar flag_r_or_p; // release or pressed key flag
 	
-	PORTC |= (1 << BUT_C0) | (1 << BUT_C1);
-	DDRC &= ~(1 << BUT_C0) & ~(1 << BUT_C1);
+	PORTB = (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
+	//DDRB = ~(1 << BUT_B0) & ~(1 << BUT_B1) & ~(1 << BUT_B2) & ~(1 << BUT_B3);
 	
-	PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1) & ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT);
-	PORTD |= (1 << BUT_D0) | (1 << BUT_D1);
+	PORTC = (1 << BUT_C0) | (1 << BUT_C1);
+	//DDRC &= ~(1 << BUT_C0) & ~(1 << BUT_C1);
 	
-	DDRD |= (1 << LED_D0) | (1 << LED_D1);
-	DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);
+	//PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1) & ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT);
+	PORTD = (1 << BUT_D0) | (1 << BUT_D1);
+	
+	DDRD = (1 << LED_D0) | (1 << LED_D1);
+	//DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);
+	
+	TCCR2 = (1 << WGM21) | (1 << CS21) | (1 << CS22); // prescaller 256 (0xFF <=> 4.08 ms)
+	OCR2 = 0x7F;
+	
+	TCCR1B = (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode with OCR1A, 16 bit timer presc = 64 (0xFFFF <=> 26 ms)
+	OCR1A = 0x7FFF;
+	
+	TIMSK = (1 << OCIE1A); // enable interrupt for 16 bit timer channel A
 	
 	usbDeviceConnect();
 	usbInit();
@@ -161,68 +197,86 @@ void main(void)
 	sei();
 	while (1) 
     {
-		usbPoll();
+		//asm("PUSH TIMSK");
+		temp = TIMSK;
+		TIMSK = 0x00;
+			usbPoll();
+		TIMSK = temp;	
+		//asm("POP TIMSK");
 		
-		// keys polling:
-			key[0] = KEY_STATUS;
-				_delay_ms(2);
-			key[1] = KEY_STATUS;
-				_delay_ms(2);
-			key[2] = KEY_STATUS;
-		
-		// send MIDI msg if keys
-		if(usbInterruptIsReady() & 
-			(key[0] == key[1]) & (key[1] == key[2]) & 
-			(key[0] != key_old))
-		{	  
-			key_mask = key[0] ^ key_old;
-			
-			key[0] &= key_mask;
-			key_old &= key_mask;
-			
-			for(i = 0; i <= 7; i++)
+		// send MIDI msg if keys was changed:
+		if(usbInterruptIsReady())
+		{
+			if((key[0] == key[1]) & (key[1] == key[2]) & (key[0] != key_old) & (ind_key_poll == 3))
 			{
-				if(((key_old & 0x01) - (key[0] & 0x01)) == 1) key_num_ch[i] = 1; // key was pressed
-				else if(((key_old & 0x01) - (key[0] & 0x01)) == 255) key_num_ch[i] = 2; // released
+				key_mask = key[0] ^ key_old;
 				
-				key_mask >>= 1;
-				key[0] >>= 1;
-				key_old >>= 1;
-			}
-			
-			for(i = 0; i <= 7; i++)
-			{
-				if(key_num_ch[i] == 1)
+				key[0] &= key_mask;
+				key_old &= key_mask;
+				
+				for(i = 0; i <= 7; i++)
 				{
-					midiMsg[0] = 0x09;
-					midiMsg[1] = 0x90;			// channel for "Note on" event: 0b1001_NNNN, NNNN - number of channel
-					midiMsg[2] = keyCode[i];	// code note
-					midiMsg[3] = 0x7F;			// velocity
+					flag_r_or_p = (key_old & 0x01) - (key[0] & 0x01); // DEBUG
 					
-					key_num_ch[i] = 0;
-					PORTD ^= (1 << LED_D1);
-				}
-				else if(key_num_ch[i] == 2)
-				{
-					midiMsg[0] = 0x08;
-					midiMsg[1] = 0x80;			// "Note off" event: 0b1000_NNNN
-					midiMsg[2] = keyCode[i];
-					midiMsg[3] = 0x00;
+					if(flag_r_or_p == 0x01) key_num_ch[i] = 1; // key was pressed
+					else if(flag_r_or_p == 0xFF) key_num_ch[i] = 2; // released
 					
-					key_num_ch[i] = 0;
+					key[0] >>= 1;
+					key_old >>= 1;
 				}
+				
+				key_old = key[1];
+				ind_midi_msg = 0;
+				
+				PORTD ^= (1 << LED_D1);
 			}
-			
-			key_old = key[1];
-			usbSetInterrupt(midiMsg, 4);
 		}
+		
+		if(key_num_ch[ind_midi_msg] == 1)
+		{
+			midiMsg[0] = 0x09;
+			midiMsg[1] = 0x90;					// channel for "Note on" event: 0b1001_NNNN, NNNN - number of channel
+			midiMsg[2] = keyCode[ind_midi_msg];	// code note
+			midiMsg[3] = 0x7F;					// velocity
+				
+			key_num_ch[ind_midi_msg] = 0;
+		}
+		else if(key_num_ch[ind_midi_msg] == 2)
+		{
+			midiMsg[0] = 0x08;
+			midiMsg[1] = 0x80;					// "Note off" event: 0b1000_NNNN
+			midiMsg[2] = keyCode[ind_midi_msg];
+			midiMsg[3] = 0x00;
+				
+			key_num_ch[ind_midi_msg] = 0;
+		}
+		else // empty msg (need to replaced by ADC msg)
+		{
+			midiMsg[0] = 0x00;
+			midiMsg[1] = 0xFD;					// "Undefined" (reserved): 0b1111_1101
+			midiMsg[2] = 0x00;
+			midiMsg[3] = 0x00;
+		}
+		
+		//asm("PUSH TIMSK");
+		temp = TIMSK;
+		TIMSK = 0x00;
+			usbSetInterrupt(midiMsg, 4);
+		TIMSK = temp;
+		//asm("POP TIMSK");
+		
+		if(ind_midi_msg == 7) ind_midi_msg = 0;
+		else ind_midi_msg++;
 		
 ERROR:	if(curInt == 0x00) 
 		{
 			PORTD |= (1 << LED_D0) | (1 << LED_D1); // wrong interface: required reset
+			TIMSK = 0;
 			usbPoll();
 			goto ERROR;
 		}
+		
+		PORTD ^= (1 << LED_D0);
     }
 }
 
