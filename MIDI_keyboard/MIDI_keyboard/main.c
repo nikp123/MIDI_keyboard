@@ -115,7 +115,7 @@ uchar usbFunctionWrite(uchar * data, uchar len)
 void usbFunctionWriteOut(uchar * data, uchar len)
 {
 	// DEBUG LED:
-	PORTD ^= (1 << LED_D0);
+	PORTD &= ~(1 << LED_D0);
 }
 
 void main(void)
@@ -133,6 +133,11 @@ void main(void)
 	};
 	
 	uchar i;
+	
+	uchar adc_ch = 0;
+	char adc_old[2] = {0x7F, 0x7F};
+	char adc_temp;
+	
 	uchar ind_midi_msg = 0; // in one pass of the main cycle - transmit one MIDI msg, index of key which will transmit in MIDI msg
 	uchar midiMsg[4];
 	
@@ -162,6 +167,14 @@ void main(void)
 	DDRD = (1 << LED_D0) | (1 << LED_D1);
 	//DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);
 	
+	ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // presc 128
+	//ADCSRA = (1 << ADEN) | (1 << ADFR) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // continues conversion
+	//ADCSRA |= (1 << ADSC); // start conversion if "ADFR" = 0
+	
+	ADMUX = (1 << ADLAR) | (1 << REFS0); // ref: "AVcc" with ext cap on "AREF" pin, read data only from "ADCH"
+	//ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1); // apply 1.3 V to ADC input for calibration
+	//ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1) | (1 << MUX0); // apply 0 V to ADC input for calibration
+	
 	usbDeviceConnect();
 	usbInit();
     
@@ -183,7 +196,7 @@ void main(void)
 		// send MIDI msg if keys was changed:
 		if(usbInterruptIsReady())
 		{
-			if((key[0] == key[1]) & (key[1] == key[2]) & (key[0] != key_old) & (ind_key_poll == 3))
+			if((key[0] == key[1]) && (key[1] == key[2]) && (key[0] != key_old) && (ind_key_poll == 3))
 			{
 				key_mask = key[0] ^ key_old;
 				
@@ -229,13 +242,26 @@ void main(void)
 			key_num_ch[ind_midi_msg] = 0;
 			usbSetInterrupt(midiMsg, 4);
 		}
-		/*else // empty msg (need to replaced by ADC msg)
+		else // check ADC
 		{
-			midiMsg[0] = 0x00;
-			midiMsg[1] = 0xFD;					// "Undefined" (reserved): 0b1111_1101
-			midiMsg[2] = 0x00;
-			midiMsg[3] = 0x00;
-		}*/
+			adc_ch ^= 0x01;  
+			ADMUX ^= (1 << MUX1); // 0 or 1 ch select
+			ADCSRA |= (1 << ADSC);
+			
+			while(ADCSRA & (1 << ADSC)) { } // wait conversion
+			adc_temp = adc_old[adc_ch] - ADCH;
+			
+			if((adc_temp > THRESHOLD) || (adc_temp < (-THRESHOLD)))
+			{
+				midiMsg[0] = 0x0B;
+				midiMsg[1] = 0xB0;					// "Control Change" event: 0b1011_NNNN
+				midiMsg[2] = adc_ch + 0x46;			// channel number 70...77 "0b0nnnnnnn"
+				midiMsg[3] = ADCH >> 1;				// value "0b0vvvvvvv"
+				
+				adc_old[adc_ch] = ADCH;
+				usbSetInterrupt(midiMsg, 4);
+			}
+		}
 		
 		//usbSetInterrupt(midiMsg, 4); // ~ 359 us
 		
