@@ -122,7 +122,7 @@ const static uchar PROGMEM confDesc[] = {
 	0x01,					/* endpoint address: OUT endpoint number 1 */
 	0x03,					/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
 	0x08, 0x00,				/* max packet size */
-	10,						/* bIntervall in ms */
+	2,						/* bIntervall in ms */
 	UNUSED,					/* bRefresh */
 	UNUSED,					/* bSyncAddress */
 
@@ -141,7 +141,7 @@ const static uchar PROGMEM confDesc[] = {
 	0x81,					/* endpoint address: IN endpoint number 1 */
 	0x03,					/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
 	0x08, 0x00,				/* max packet size */
-	10,						/* bIntervall in ms */
+	2,						/* bIntervall in ms */
 	UNUSED,					/* bRefresh */
 	UNUSED,					/* bSyncAddress */
 

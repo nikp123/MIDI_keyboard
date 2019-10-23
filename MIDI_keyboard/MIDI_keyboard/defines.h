@@ -1,8 +1,8 @@
 #define F_CPU 16000000L
 
 #define UNUSED 0x00
-#define  DEBOUNCE 50 /* in tacts */
-#define  THRESHOLD 10 /* threshold for ADC which defines freq of polling ADC */
+#define  DEBOUNCE 40 /* in tacts */
+#define  THRESHOLD 7 /* threshold for ADC which defines freq of polling ADC */
 
 #define LED_D0 4
 #define LED_D1 5

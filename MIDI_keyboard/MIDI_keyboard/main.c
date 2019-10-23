@@ -118,6 +118,31 @@ void usbFunctionWriteOut(uchar * data, uchar len)
 	PORTD &= ~(1 << LED_D0);
 }
 
+void hardwareInit(void)
+{
+// IO PORT:
+	PORTB = (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
+	//DDRB = ~(1 << BUT_B0) & ~(1 << BUT_B1) & ~(1 << BUT_B2) & ~(1 << BUT_B3);
+
+	PORTC = (1 << BUT_C0) | (1 << BUT_C1);
+	//DDRC &= ~(1 << BUT_C0) & ~(1 << BUT_C1);
+
+	//PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1) & ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT);
+	PORTD = (1 << BUT_D0) | (1 << BUT_D1);
+
+	DDRD = (1 << LED_D0) | (1 << LED_D1);
+	//DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);
+
+// ADC:
+	ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // presc 128
+	//ADCSRA = (1 << ADEN) | (1 << ADFR) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // continues conversion
+	//ADCSRA |= (1 << ADSC); // start conversion if "ADFR" = 0
+
+	ADMUX = (1 << ADLAR) | (1 << REFS0); // ref: "AVcc" with ext cap on "AREF" pin, read data only from "ADCH"
+	//ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1); // apply 1.3 V to ADC input for calibration
+	//ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1) | (1 << MUX0); // apply 0 V to ADC input for calibration
+}
+
 void main(void)
 {
 	const uchar keyCode [8] = 
@@ -135,11 +160,11 @@ void main(void)
 	uchar i;
 	
 	uchar adc_ch = 0;
-	uchar adc_old[2] = {0x7F, 0x7F};
-	uchar adc_temp;
+	int adc_old[2] = {0, 0};
+	int adc_temp;
 	
 	uchar ind_midi_msg = 0; // in one pass of the main cycle - transmit one MIDI msg, index of key which will transmit in MIDI msg
-	uchar midiMsg[4];
+	uchar midi_msg[4];
 	
 	uchar key[3] = {0xFF, 0xFF, 0xFF,}; // keys status: for "majoritar"
 	
@@ -152,28 +177,9 @@ void main(void)
 	uchar key_mask;
 	uchar key_num_ch[8] = // number of keys that was changed: release (2) or press (1), don't changed (0):
 							{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, };
-	
 	uchar flag_r_or_p; // release or pressed key flag
 	
-	PORTB = (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
-	//DDRB = ~(1 << BUT_B0) & ~(1 << BUT_B1) & ~(1 << BUT_B2) & ~(1 << BUT_B3);
-	
-	PORTC = (1 << BUT_C0) | (1 << BUT_C1);
-	//DDRC &= ~(1 << BUT_C0) & ~(1 << BUT_C1);
-	
-	//PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1) & ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT);
-	PORTD = (1 << BUT_D0) | (1 << BUT_D1);
-	
-	DDRD = (1 << LED_D0) | (1 << LED_D1);
-	//DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);
-	
-	ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // presc 128
-	//ADCSRA = (1 << ADEN) | (1 << ADFR) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // continues conversion
-	//ADCSRA |= (1 << ADSC); // start conversion if "ADFR" = 0
-	
-	ADMUX = (1 << ADLAR) | (1 << REFS0); // ref: "AVcc" with ext cap on "AREF" pin, read data only from "ADCH"
-	//ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1); // apply 1.3 V to ADC input for calibration
-	//ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1) | (1 << MUX0); // apply 0 V to ADC input for calibration
+	hardwareInit();
 	
 	usbDeviceConnect();
 	usbInit();
@@ -186,14 +192,10 @@ void main(void)
 		if(cnt_keys_poll == DEBOUNCE)
 		{
 			key[ind_key_poll] = KEY_STATUS;
-			
-			if(ind_key_poll < 3) ind_key_poll++;
-			else ind_key_poll = 0;
-			
-			PORTD ^= (1 << LED_D0);
+			ind_key_poll++;
 		}
 		
-		// send MIDI msg if keys was changed:
+		// if keys was changed - save num and direction of changed keys:
 		if(usbInterruptIsReady())
 		{
 			if((key[0] == key[1]) && (key[1] == key[2]) && (key[0] != key_old) && (ind_key_poll == 3))
@@ -222,56 +224,61 @@ void main(void)
 			}
 		}
 		
+		// send MIDI msg for changed keys:
 		if(key_num_ch[ind_midi_msg] == 1)
 		{
-			midiMsg[0] = 0x09;
-			midiMsg[1] = 0x90;					// channel for "Note on" event: 0b1001_NNNN, NNNN - number of channel
-			midiMsg[2] = keyCode[ind_midi_msg];	// code note
-			midiMsg[3] = 0x7F;					// velocity
+			midi_msg[0] = 0x09;
+			midi_msg[1] = 0x90;					 // "Note on" event: 0b1001_NNNN, NNNN - number of channel
+			midi_msg[2] = keyCode[ind_midi_msg]; // code of note
+			midi_msg[3] = 0x7F;					 // velocity
 				
 			key_num_ch[ind_midi_msg] = 0;
-			usbSetInterrupt(midiMsg, 4);
+			usbSetInterrupt(midi_msg, 4); // ~ 359 us
 		}
 		else if(key_num_ch[ind_midi_msg] == 2)
 		{
-			midiMsg[0] = 0x08;
-			midiMsg[1] = 0x80;					// "Note off" event: 0b1000_NNNN
-			midiMsg[2] = keyCode[ind_midi_msg];
-			midiMsg[3] = 0x00;
+			midi_msg[0] = 0x08;
+			midi_msg[1] = 0x80;					 // "Note off" event: 0b1000_NNNN
+			midi_msg[2] = keyCode[ind_midi_msg];
+			midi_msg[3] = 0x00;
 				
 			key_num_ch[ind_midi_msg] = 0;
-			usbSetInterrupt(midiMsg, 4);
+			usbSetInterrupt(midi_msg, 4);
 		}
-		else // check ADC
+		else // else check ADC:
 		{
 			adc_ch ^= 0x01;  
 			ADMUX ^= (1 << MUX1); // 0 or 1 ch select
-			ADCSRA |= (1 << ADSC);
 			
-			while(ADCSRA & (1 << ADSC)) { } // wait conversion
+			ADCSRA |= (1 << ADSC); // start converse
+			while(ADCSRA & (1 << ADSC)) { } // wait end of conversion
 			
-			if(adc_old[adc_ch] >= ADCH) adc_temp = adc_old[adc_ch] - ADCH;
-			else adc_temp = ADCH - adc_old[adc_ch];
+			adc_temp = ADCH;
 			
-			if(adc_temp > THRESHOLD)
+				PORTD &= ~(1 << LED_D0);
+			if(((adc_old[adc_ch] - adc_temp) > THRESHOLD) || ((adc_old[adc_ch] - adc_temp) < -THRESHOLD))
 			{
-				midiMsg[0] = 0x0B;
-				midiMsg[1] = 0xB0;					// "Control Change" event: 0b1011_NNNN
-				midiMsg[2] = adc_ch + 0x46;			// channel number 70...77 "0b0nnnnnnn"
-				midiMsg[3] = ADCH >> 1;				// value "0b0vvvvvvv"
+				PORTD |= (1 << LED_D0);
+				
+				midi_msg[0] = 0x0B;
+				midi_msg[1] = 0xB0;				 // "Control Change" event: 0b1011_NNNN
+				midi_msg[2] = adc_ch + 0x5A;	 // channel number 70...77 "0b0nnnnnnn"
+				midi_msg[3] = adc_temp >> 1;		 // value "0b0vvvvvvv"
 				
 				adc_old[adc_ch] = ADCH;
-				usbSetInterrupt(midiMsg, 4);
+				usbSetInterrupt(midi_msg, 4);
 			}
 		}
-		
-		//usbSetInterrupt(midiMsg, 4); // ~ 359 us
 		
 		if(ind_midi_msg < 7) ind_midi_msg++;
 		else ind_midi_msg = 0;
 		
 		if(cnt_keys_poll < DEBOUNCE) cnt_keys_poll++; // one main cycle pass ~ 0.5 ms
-		else if(ind_key_poll == 3) cnt_keys_poll = 0;
+		else if(ind_key_poll == 3) 
+		{
+			cnt_keys_poll = 0;
+			ind_key_poll = 0;
+		}
 		
 ERROR:	if(curInt == 0x00) 
 		{
