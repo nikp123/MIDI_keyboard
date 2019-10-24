@@ -9,6 +9,7 @@
 #include "usbdrv/usbdrv.h"
 #include "descriptors.h"
 
+#define uint unsigned int
 #define KEY_STATUS ((PINB & 0b00001111) | (PINC & 0b00110000) | (PIND & 0b11000000))
 //   key num: 7 6 5 4 3 2 1 0
 // PORT name: D D C C B B B B, bind by scheme
@@ -112,31 +113,42 @@ uchar usbFunctionWrite(uchar * data, uchar len)
 	}
 }
 
-void usbFunctionWriteOut(uchar * data, uchar len)
+void usbFunctionWriteOut(uchar * data, uchar len) // ???
 {
-	// DEBUG LED:
-	PORTD &= ~(1 << LED_D0);
+	
+}
+
+uchar adc_ch = 0;
+uchar cnt_adc_conv = 0;
+
+int adc_buf[2][8];
+
+ISR(ADC_vect)
+{
+	sei(); // mb not required
+	
+	if(cnt_adc_conv < 8) 
+	{
+		adc_buf[adc_ch][cnt_adc_conv] = ADCH;
+		cnt_adc_conv++;
+	}
 }
 
 void hardwareInit(void)
 {
 // IO PORT:
 	PORTB = (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
-	//DDRB = ~(1 << BUT_B0) & ~(1 << BUT_B1) & ~(1 << BUT_B2) & ~(1 << BUT_B3);
+	DDRB = 0; // all input with pull up
 
 	PORTC = (1 << BUT_C0) | (1 << BUT_C1);
-	//DDRC &= ~(1 << BUT_C0) & ~(1 << BUT_C1);
+	DDRC = 0; // all input with pull up
 
-	//PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1) & ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT);
 	PORTD = (1 << BUT_D0) | (1 << BUT_D1);
-
 	DDRD = (1 << LED_D0) | (1 << LED_D1);
-	//DDRD &= ~(1 << USB_CFG_DMINUS_BIT) & ~(1 << USB_CFG_DPLUS_BIT) & ~(1 << BUT_D0) & ~(1 << BUT_D1);
 
 // ADC:
-	ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // presc 128
-	//ADCSRA = (1 << ADEN) | (1 << ADFR) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // continues conversion
-	//ADCSRA |= (1 << ADSC); // start conversion if "ADFR" = 0
+	//ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // presc 128
+	ADCSRA = (1 << ADEN) | (1 << ADFR) | (1 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // continues conversion
 
 	ADMUX = (1 << ADLAR) | (1 << REFS0); // ref: "AVcc" with ext cap on "AREF" pin, read data only from "ADCH"
 	//ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1); // apply 1.3 V to ADC input for calibration
@@ -158,47 +170,48 @@ void main(void)
 	};
 	
 	uchar i;
-	
-	uchar adc_ch = 0;
+
+// ADC:	
 	int adc_old[2] = {0, 0};
 	int adc_temp;
-	
+
+// MIDI:	
 	uchar ind_midi_msg = 0; // in one pass of the main cycle - transmit one MIDI msg, index of key which will transmit in MIDI msg
 	uchar midi_msg[4];
-	
-	uchar key[3] = {0xFF, 0xFF, 0xFF,}; // keys status: for "majoritar"
-	
-	uchar cnt_keys_poll = 0;
-	uchar ind_key_poll = 0;
-	
+
+// keyboard:	
+	uchar key[3] = {0xFF, 0xFF, 0xFF}; // keys status: for "majoritar"
 	uchar key_old = 0xFF; 
-	//uchar key_old = 0xFC; // DEBUG: fast imitate of release key
 	
 	uchar key_mask;
 	uchar key_num_ch[8] = // number of keys that was changed: release (2) or press (1), don't changed (0):
-							{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, };
+							{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	uchar cnt_key_poll = 0; // number of polling keyboard for "majoritar" (3 times)
 	uchar flag_r_or_p; // release or pressed key flag
 	
+	uint  cnt_deb = 0;
+	uchar cnt_deb_beet = 0;
+
+// init:	
 	hardwareInit();
-	
 	usbDeviceConnect();
 	usbInit();
     
 	sei();
 	while (1) 
     {
-		usbPoll(); // ~ 154 us
+		usbPoll(); // ~ 9.63 us
 		
-		if(cnt_keys_poll == DEBOUNCE)
+		if((cnt_deb == DEB) & (cnt_deb_beet == 0))
 		{
-			key[ind_key_poll] = KEY_STATUS;
-			ind_key_poll++;
+			key[cnt_key_poll] = KEY_STATUS;
+			cnt_key_poll++;
 		}
 		
 		// if keys was changed - save num and direction of changed keys:
 		if(usbInterruptIsReady())
 		{
-			if((key[0] == key[1]) && (key[1] == key[2]) && (key[0] != key_old) && (ind_key_poll == 3))
+			if((key[0] == key[1]) && (key[1] == key[2]) && (key[0] != key_old) && (cnt_key_poll == 3))
 			{
 				key_mask = key[0] ^ key_old;
 				
@@ -230,10 +243,10 @@ void main(void)
 			midi_msg[0] = 0x09;
 			midi_msg[1] = 0x90;					 // "Note on" event: 0b1001_NNNN, NNNN - number of channel
 			midi_msg[2] = keyCode[ind_midi_msg]; // code of note
-			midi_msg[3] = 0x7F;					 // velocity
+			midi_msg[3] = 0x7F;					 // velocity "0b0vvvvvvv"
 				
 			key_num_ch[ind_midi_msg] = 0;
-			usbSetInterrupt(midi_msg, 4); // ~ 359 us
+			usbSetInterrupt(midi_msg, 4); // ~ 22.44 us
 		}
 		else if(key_num_ch[ind_midi_msg] == 2)
 		{
@@ -244,41 +257,50 @@ void main(void)
 				
 			key_num_ch[ind_midi_msg] = 0;
 			usbSetInterrupt(midi_msg, 4);
-		}
-		else // else check ADC:
+		} // else check ADC:
+		else if(cnt_adc_conv == 8)
 		{
-			adc_ch ^= 0x01;  
-			ADMUX ^= (1 << MUX1); // 0 or 1 ch select
+			ADCSRA &= ~(1 << ADIE); // dsbl interrupt for normal filtering and send msg
 			
-			ADCSRA |= (1 << ADSC); // start converse
-			while(ADCSRA & (1 << ADSC)) { } // wait end of conversion
+			cnt_adc_conv = 0;
+			adc_temp = 0;
 			
-			adc_temp = ADCH;
+			for(i = 0; i <= 7; i++) adc_temp += adc_buf[adc_ch][i];
+			adc_temp >>= 3;
 			
-				PORTD &= ~(1 << LED_D0);
+				PORTD &= ~(1 << LED_D0); // activate led only when potent is rotating
 			if(((adc_old[adc_ch] - adc_temp) > THRESHOLD) || ((adc_old[adc_ch] - adc_temp) < -THRESHOLD))
 			{
 				PORTD |= (1 << LED_D0);
 				
 				midi_msg[0] = 0x0B;
-				midi_msg[1] = 0xB0;				 // "Control Change" event: 0b1011_NNNN
-				midi_msg[2] = adc_ch + 0x5A;	 // channel number 70...77 "0b0nnnnnnn"
-				midi_msg[3] = adc_temp >> 1;		 // value "0b0vvvvvvv"
+				midi_msg[1] = 0xB0;				// "Control Change" event: 0b1011_NNNN
+				midi_msg[2] = adc_ch + 0x5A;	// channel number 70...77 "0b0nnnnnnn" (sel 90,91)
+				midi_msg[3] = adc_temp >> 1;	// value "0b0vvvvvvv"
 				
-				adc_old[adc_ch] = ADCH;
+				adc_old[adc_ch] = adc_temp;
 				usbSetInterrupt(midi_msg, 4);
 			}
+			
+			adc_ch ^= 0x01;
+			ADMUX ^= (1 << MUX1); // 0 or 1 ch select
+			
+			if(ADCSRA & (1 << ADIF)) ADCSRA |= (1 << ADIF); // dsbl flag interrupt because channel not actuality
+			ADCSRA |= (1 << ADIE);
 		}
 		
 		if(ind_midi_msg < 7) ind_midi_msg++;
 		else ind_midi_msg = 0;
 		
-		if(cnt_keys_poll < DEBOUNCE) cnt_keys_poll++; // one main cycle pass ~ 0.5 ms
-		else if(ind_key_poll == 3) 
+		if(cnt_deb < DEB) cnt_deb++; // one main cycle pass ~ 15-16 us
+		else if(cnt_key_poll == 3) 
 		{
-			cnt_keys_poll = 0;
-			ind_key_poll = 0;
+			cnt_deb = 0;
+			cnt_key_poll = 0;
 		}
+		
+		if((cnt_deb == DEB) & (cnt_deb_beet < DEB_BEET)) cnt_deb_beet++;
+		else cnt_deb_beet = 0; 
 		
 ERROR:	if(curInt == 0x00) 
 		{
