@@ -156,7 +156,7 @@ void hardwareInit(void)
 
 void main(void)
 {
-	const uchar keyCode [8] = 
+	const uchar key_code [8] = 
 	{		// PIN-PORT -> "note":
 		0x3C, //   0-B -> "C" middle octave: key code "0"
 		0x3E, //   1-B -> "D"
@@ -242,7 +242,7 @@ void main(void)
 		{
 			midi_msg[0] = 0x09;
 			midi_msg[1] = 0x90;					 // "Note on" event: 0b1001_NNNN, NNNN - number of channel
-			midi_msg[2] = keyCode[ind_midi_msg]; // code of note
+			midi_msg[2] = key_code[ind_midi_msg]; // code of note
 			midi_msg[3] = 0x7F;					 // velocity "0b0vvvvvvv"
 				
 			key_num_ch[ind_midi_msg] = 0;
@@ -252,7 +252,7 @@ void main(void)
 		{
 			midi_msg[0] = 0x08;
 			midi_msg[1] = 0x80;					 // "Note off" event: 0b1000_NNNN
-			midi_msg[2] = keyCode[ind_midi_msg];
+			midi_msg[2] = key_code[ind_midi_msg];
 			midi_msg[3] = 0x00;
 				
 			key_num_ch[ind_midi_msg] = 0;
