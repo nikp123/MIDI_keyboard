@@ -147,8 +147,7 @@ void hardwareInit(void)
 	DDRD = (1 << LED_D0) | (1 << LED_D1);
 
 // ADC:
-	//ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // presc 128
-	ADCSRA = (1 << ADEN) | (1 << ADFR) | (1 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // continues conversion
+	ADCSRA = (1 << ADEN) | (1 << ADFR) | (1 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // continues conversion, presc 128
 
 	ADMUX = (1 << ADLAR) | (1 << REFS0); // ref: "AVcc" with ext cap on "AREF" pin, read data only from "ADCH"
 	//ADMUX |= (1 << MUX3) | (1 << MUX2) | (1 << MUX1); // apply 1.3 V to ADC input for calibration
@@ -258,7 +257,8 @@ void main(void)
 				
 			key_num_ch[ind_midi_msg] = 0;
 			usbSetInterrupt(midi_msg, 4);
-		} // else check ADC:
+		} 
+		// else check ADC:
 		else if(cnt_adc_conv == 16)
 		{
 			ADCSRA &= ~(1 << ADIE); // dsbl interrupt for normal filtering and send msg
@@ -269,7 +269,7 @@ void main(void)
 			for(i = 0; i <= 15; i++) adc_temp += adc_buf[adc_ch][i];
 			adc_temp >>= 4;
 			
-				PORTD &= ~(1 << LED_D0); // activate led only when potent is rotating
+				PORTD &= ~(1 << LED_D0); // activate led only when potentiometer is rotating
 			if(((adc_old[adc_ch] - adc_temp) > THRESHOLD) || ((adc_old[adc_ch] - adc_temp) < -THRESHOLD))
 			{
 				PORTD |= (1 << LED_D0);

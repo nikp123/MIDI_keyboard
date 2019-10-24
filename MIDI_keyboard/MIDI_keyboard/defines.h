@@ -1,4 +1,9 @@
-// when CPU freq is change - required calculate new value for all delay (debounce, delay when calling spec func)
+
+/************************************************** ATTETNTION ***************************************************/
+/* when CPU freq is change - required calculate new value for all delay (debounce, delay when calling spec func) */
+/*										compile with "-O1" optimize												 */
+/*****************************************************************************************************************/
+
 #define F_CPU 16000000L
 
 #define  DEB 380 /* freq of polling keyboard in "time of one main cycle pass", max 65535 */
