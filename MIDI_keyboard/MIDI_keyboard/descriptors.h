@@ -1,3 +1,5 @@
+#define UNUSED 0x00
+
 const static int PROGMEM prodStrDesr[] =
 {
 	USB_STRING_DESCRIPTOR_HEADER(7),

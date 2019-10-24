@@ -121,13 +121,13 @@ void usbFunctionWriteOut(uchar * data, uchar len) // ???
 uchar adc_ch = 0;
 uchar cnt_adc_conv = 0;
 
-int adc_buf[2][8];
+int adc_buf[2][16];
 
 ISR(ADC_vect)
 {
 	sei(); // mb not required
 	
-	if(cnt_adc_conv < 8) 
+	if(cnt_adc_conv < 16) 
 	{
 		adc_buf[adc_ch][cnt_adc_conv] = ADCH;
 		cnt_adc_conv++;
@@ -197,10 +197,11 @@ void main(void)
 	usbDeviceConnect();
 	usbInit();
     
+	ADCSRA |= (1 << ADSC); // start ADC
 	sei();
 	while (1) 
     {
-		usbPoll(); // ~ 9.63 us
+		usbPoll(); // ~ 9.63 us (all timings write in 16 MHz CPU freq)
 		
 		if((cnt_deb == DEB) & (cnt_deb_beet == 0))
 		{
@@ -258,15 +259,15 @@ void main(void)
 			key_num_ch[ind_midi_msg] = 0;
 			usbSetInterrupt(midi_msg, 4);
 		} // else check ADC:
-		else if(cnt_adc_conv == 8)
+		else if(cnt_adc_conv == 16)
 		{
 			ADCSRA &= ~(1 << ADIE); // dsbl interrupt for normal filtering and send msg
 			
 			cnt_adc_conv = 0;
 			adc_temp = 0;
 			
-			for(i = 0; i <= 7; i++) adc_temp += adc_buf[adc_ch][i];
-			adc_temp >>= 3;
+			for(i = 0; i <= 15; i++) adc_temp += adc_buf[adc_ch][i];
+			adc_temp >>= 4;
 			
 				PORTD &= ~(1 << LED_D0); // activate led only when potent is rotating
 			if(((adc_old[adc_ch] - adc_temp) > THRESHOLD) || ((adc_old[adc_ch] - adc_temp) < -THRESHOLD))
@@ -283,7 +284,7 @@ void main(void)
 			}
 			
 			adc_ch ^= 0x01;
-			ADMUX ^= (1 << MUX1); // 0 or 1 ch select
+			ADMUX ^= (1 << MUX0); // 0 or 1 ch select
 			
 			if(ADCSRA & (1 << ADIF)) ADCSRA |= (1 << ADIF); // dsbl flag interrupt because channel not actuality
 			ADCSRA |= (1 << ADIE);
