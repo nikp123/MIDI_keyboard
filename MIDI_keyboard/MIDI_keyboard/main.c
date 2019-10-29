@@ -1,11 +1,8 @@
-#include "defines.h"
-
-#include <string.h>
-
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 
+#include "defines.h"
 #include "usbdrv/usbdrv.h"
 #include "descriptors.h"
 
@@ -119,7 +116,7 @@ void usbFunctionWriteOut(uchar * data, uchar len) // ???
 }
 
 uchar adc_ch = 0;
-uchar cnt_adc_conv = 0;
+uchar cnt_adc_smpl = 0;
 
 int adc_buf[2][16];
 
@@ -127,10 +124,10 @@ ISR(ADC_vect)
 {
 	sei(); // mb not required
 	
-	if(cnt_adc_conv < 16) 
+	if(cnt_adc_smpl < 16) 
 	{
-		adc_buf[adc_ch][cnt_adc_conv] = ADCH;
-		cnt_adc_conv++;
+		adc_buf[adc_ch][cnt_adc_smpl] = ADCH;
+		cnt_adc_smpl++;
 	}
 }
 
@@ -233,7 +230,7 @@ void main(void)
 				key_old = key[1];
 				ind_midi_msg = 0;
 				
-				PORTD ^= (1 << LED_D1);
+				LED1_TOGGLE;
 			}
 		}
 		
@@ -259,20 +256,20 @@ void main(void)
 			usbSetInterrupt(midi_msg, 4);
 		} 
 		// else check ADC:
-		else if(cnt_adc_conv == 16)
+		else if(cnt_adc_smpl == 16)
 		{
 			ADCSRA &= ~(1 << ADIE); // dsbl interrupt for normal filtering and send msg
 			
-			cnt_adc_conv = 0;
+			cnt_adc_smpl = 0;
 			adc_temp = 0;
 			
 			for(i = 0; i <= 15; i++) adc_temp += adc_buf[adc_ch][i];
 			adc_temp >>= 4;
 			
-				PORTD &= ~(1 << LED_D0); // activate led only when potentiometer is rotating
+				LED0_OFF; // activate led only when potentiometer is rotating
 			if(((adc_old[adc_ch] - adc_temp) > THRESHOLD) || ((adc_old[adc_ch] - adc_temp) < -THRESHOLD))
 			{
-				PORTD |= (1 << LED_D0);
+				LED0_ON;
 				
 				midi_msg[0] = 0x0B;
 				midi_msg[1] = 0xB0;				// "Control Change" event: 0b1011_NNNN
@@ -305,7 +302,7 @@ void main(void)
 		
 ERROR:	if(curInt == 0x00) 
 		{
-			PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1); // wrong interface: required reset
+			LED_OFF; // wrong interface: required reset
 			usbPoll();
 			goto ERROR;
 		}

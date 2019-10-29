@@ -1,13 +1,13 @@
 
 /************************************************** ATTETNTION ***************************************************/
 /* when CPU freq is change - required calculate new value for all delay (debounce, delay when calling spec func) */
-/*										compile with "-O1" optimize												 */
+/*						compile with "-O1" optimize, potentiometers 100 kOhm									 */
 /*****************************************************************************************************************/
 
 #define F_CPU 16000000L
 
-#define  DEB 450 /* freq of polling keyboard in "time of one main cycle pass", max 65535 */
-#define  DEB_BEET 25 /* debounce between 3 times polling PIN of keyboard after main debounce, max 255 */
+#define  DEB 490 /* freq of polling keyboard in "time of one main cycle pass", max 65535 */
+#define  DEB_BEET 28 /* debounce between 3 times polling PIN of keyboard after main debounce, max 255 */
 #define  THRESHOLD 7 /* threshold for ADC which defines step of values ADC */
 
 // IO ports:
@@ -24,3 +24,11 @@
 
 #define BUT_D0 6
 #define BUT_D1 7
+
+// LED:
+#define LED0_ON (PORTD |= (1 << LED_D0))
+#define LED0_OFF (PORTD &= ~(1 << LED_D0))
+
+#define LED1_TOGGLE (PORTD ^= (1 << LED_D1))
+
+#define LED_OFF (PORTD &= ~(1 << LED_D0) & ~(1 << LED_D1))
