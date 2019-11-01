@@ -1,6 +1,5 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <avr/pgmspace.h>
 
 #include "defines.h"
 #include "usbdrv/usbdrv.h"
@@ -76,14 +75,14 @@ USB_PUBLIC uchar usbFunctionSetup(uchar data[8])
 	}
 }
 
-uchar usbFunctionRead(uchar * data, uchar len)
+uchar usbFunctionRead(uchar * data, uchar len) // mb turn off in usbconfig ???
 {
 	switch(bReq)
 	{
 		case USBRQ_GET_CONFIGURATION:
 			data[0] = 0x01;
 			return 1;
-		case USBRQ_GET_INTERFACE:
+		case USBRQ_GET_INTERFACE: // ??? descr "interface" and "endpoint" not addressed individually, they inc in device descr
 			if(wInd == 0x00) 
 			{
 				data[0] = 0x00;
@@ -99,7 +98,7 @@ uchar usbFunctionRead(uchar * data, uchar len)
 	}
 }
 
-uchar usbFunctionWrite(uchar * data, uchar len)
+uchar usbFunctionWrite(uchar * data, uchar len) // mb turn off in usbconfig ???
 {
 	switch(bReq)
 	{
@@ -110,7 +109,7 @@ uchar usbFunctionWrite(uchar * data, uchar len)
 	}
 }
 
-void usbFunctionWriteOut(uchar * data, uchar len) // ???
+void usbFunctionWriteOut(uchar * data, uchar len) // mb turn off in usbconfig ???
 {
 	
 }

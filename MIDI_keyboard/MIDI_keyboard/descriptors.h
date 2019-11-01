@@ -1,19 +1,21 @@
+#include <avr/pgmspace.h>
+
 #define UNUSED 0x00
 
-const static int PROGMEM prodStrDesr[] =
+const int PROGMEM prodStrDesr[] =
 {
 	USB_STRING_DESCRIPTOR_HEADER(7),
 	's', 's', '_', 'm', 'i', 'd', 'i'
 };
 
-const static uchar PROGMEM devDesc[] = {
+const uchar PROGMEM devDesc[] = { // all desc static ???
 	0x12,					/* sizeof(usbDescriptorDevice): length of descriptor in bytes */
 	USBDESCR_DEVICE,		/* descriptor type */
 	0x10, 0x01,				/* USB version supported */
-	UNUSED,					/* device class: defined at interface level */
+	UNUSED,					/* device class: defined at interface level (if bDeviceClass = 0x00) */
 	UNUSED,					/* subclass */
-	UNUSED,					/* protocol */
-	0x08,					/* max packet size */
+	UNUSED,					/* protocol: defined at interface level */
+	0x08,					/* max packet size (for EP0) */
 	USB_CFG_VENDOR_ID,		/* 2 bytes */
 	USB_CFG_DEVICE_ID,		/* 2 bytes */
 	USB_CFG_DEVICE_VERSION,	/* 2 bytes */
@@ -23,7 +25,7 @@ const static uchar PROGMEM devDesc[] = {
 	0x01,					/* number of configurations */
 };
 
-const static uchar PROGMEM confDesc[] = {
+const uchar PROGMEM confDesc[] = {
 	
 				/****************** Configuration Descriptor ******************/
 	
@@ -31,7 +33,7 @@ const static uchar PROGMEM confDesc[] = {
 	USBDESCR_CONFIG,			/* descriptor type */
 	0x65, 0x00,					/* total length of data returned (including inlined descriptors) */
 	0x02,						/* number of interfaces in this configuration */
-	0x01,						/* index of this configuration */
+	0x01,						/* index of this configuration (??? or value that choose this configuration) */
 	UNUSED,						/* configuration name string index */
 	USBATTR_BUSPOWER,			/* attributes */
 	USB_CFG_MAX_BUS_POWER / 2,	/* max USB current in 2mA units */
@@ -42,12 +44,12 @@ const static uchar PROGMEM confDesc[] = {
 	0x09,					/* sizeof(usbDescrInterface): length of descriptor in bytes */
 	USBDESCR_INTERFACE,		/* descriptor type */
 	0x00,					/* index of this interface */
-	0x00,					/* alternate setting for this interface */
-	0x00,					/* endpoints excl 0: number of endpoint descriptors to follow */
-	0x01,					/* interface class: AUDIO */
+	UNUSED,					/* alternate setting for this interface (mb used for define alternative interface) */
+	0x00,					/* amount endpoints that this interface is use, excl 0 */
+	USB_CFG_INTERFACE_CLASS,/* interface class: AUDIO */
 	0x01,					/* interface subclass: AUDIO_CONTROL */
-	UNUSED,					/* interface protocol */
-	UNUSED,					/* string index for interface */
+	UNUSED,					/* interface protocol (e.g. 0 = none, 1 = keyboard, 2 = mouse for HID) */
+	UNUSED,					/* index of string descriptor for this interface */
 
 	// Class-specific AC Interface Descriptor (header only, cause audio functionality does not contain):
 	0x09,					/* sizeof(usbDescrCDC_HeaderFn): length of descriptor in bytes */
@@ -64,12 +66,12 @@ const static uchar PROGMEM confDesc[] = {
 	0x09,					/* length of descriptor in bytes */
 	USBDESCR_INTERFACE,		/* descriptor type */
 	0x01,					/* index of this interface */
-	0x00,					/* alternate setting for this interface */
-	0x02,					/* endpoints excl 0: number of endpoint descriptors to follow */
-	0x01,					/* interface class: AUDIO */
-	0x03,					/* interface subclass: MIDIStreaming */
-	UNUSED,					/* interface protocol */
-	UNUSED,					/* string index for interface */
+	UNUSED,					/* alternate setting for this interface */
+	0x02,					/* amount endpoints that this interface is use, excl 0 */
+	USB_CFG_INTERFACE_CLASS,/* interface class: AUDIO */
+	USB_CFG_INTERFACE_SUBCLASS,
+	USB_CFG_INTERFACE_PROTOCOL,
+	UNUSED,					/* index of string descriptor for this interface */
 		
 	// Class-specific MS Interface Descriptor:
 	0x07,					/* length of descriptor in bytes */
@@ -124,7 +126,7 @@ const static uchar PROGMEM confDesc[] = {
 	0x01,					/* endpoint address: OUT endpoint number 1 */
 	0x03,					/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
 	0x08, 0x00,				/* max packet size */
-	2,						/* bIntervall in ms */
+	USB_CFG_INTR_POLL_INTERVAL,
 	UNUSED,					/* bRefresh */
 	UNUSED,					/* bSyncAddress */
 
@@ -141,9 +143,9 @@ const static uchar PROGMEM confDesc[] = {
 	0x09,					/* size of this descriptor */
 	USBDESCR_ENDPOINT,		/* descriptor type */
 	0x81,					/* endpoint address: IN endpoint number 1 */
-	0x03,					/* bmAttributes: 2: Bulk, 3: Interrupt endpoint */
+	0x03,					/* bmAttributes: 0: Control, 1: Isochronous 2: Bulk, 3: Interrupt endpoint */
 	0x08, 0x00,				/* max packet size */
-	2,						/* bIntervall in ms */
+	USB_CFG_INTR_POLL_INTERVAL,
 	UNUSED,					/* bRefresh */
 	UNUSED,					/* bSyncAddress */
 

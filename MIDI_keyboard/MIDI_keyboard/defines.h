@@ -6,9 +6,9 @@
 
 #define F_CPU 16000000L
 
-#define  DEB 490 /* freq of polling keyboard in "time of one main cycle pass", max 65535 */
-#define  DEB_BEET 28 /* debounce between 3 times polling PIN of keyboard after main debounce, max 255 */
-#define  THRESHOLD 7 /* threshold for ADC which defines step of values ADC */
+#define  DEB 300 /* freq of polling keyboard in "time of one main cycle pass", max 65535 */
+#define  DEB_BEET 25 /* debounce between 3 times polling PIN of keyboard after main debounce, max 255 */
+#define  THRESHOLD 5 /* threshold for ADC which defines step of values ADC */
 
 // IO ports:
 #define LED_D0 4
