@@ -1,7 +1,5 @@
 #include <avr/pgmspace.h>
 
-#define UNUSED 0x00
-
 const int PROGMEM prodStrDesr[] =
 {
 	USB_STRING_DESCRIPTOR_HEADER(7),
@@ -31,7 +29,7 @@ const uchar PROGMEM confDesc[] = {
 	
 	0x09,						/* sizeof(usbDescrConfig): length of descriptor in bytes */
 	USBDESCR_CONFIG,			/* descriptor type */
-	0x65, 0x00,					/* total length of data returned (including inlined descriptors) */
+	TOTAL_LEN_DESCR, 0x00,		/* total length of data returned (including inlined descriptors) */
 	0x02,						/* number of interfaces in this configuration */
 	0x01,						/* index of this configuration (??? or value that choose this configuration) */
 	UNUSED,						/* configuration name string index */

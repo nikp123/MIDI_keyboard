@@ -26,17 +26,17 @@ uchar usbFunctionDescriptor(usbRequest_t * rq)
 {
 	if(rq -> wValue.bytes[1] == USBDESCR_DEVICE)
 	{
-		usbMsgPtr = (int)devDesc;
+		usbMsgPtr = (usbMsgPtr_t)devDesc;
 		return sizeof(devDesc);
 	}
 	else if(rq -> wValue.bytes[1] == USBDESCR_CONFIG)
 	{
-		usbMsgPtr = (int)confDesc;
+		usbMsgPtr = (usbMsgPtr_t)confDesc;
 		return sizeof(confDesc);
 	}
 	else if((rq -> wValue.bytes[1] == USBDESCR_STRING) & (rq -> wValue.bytes[0] == 2)) // device name
 	{
-		usbMsgPtr = (int)prodStrDesr;
+		usbMsgPtr = (usbMsgPtr_t)prodStrDesr;
 		return sizeof(prodStrDesr);
 	}
 	else return 0xFF;
@@ -44,7 +44,7 @@ uchar usbFunctionDescriptor(usbRequest_t * rq)
 
 USB_PUBLIC uchar usbFunctionSetup(uchar data[8])
 {
-	usbRequest_t *rq = (void *) data;
+	usbRequest_t *rq = (usbRequest_t*) data;
 
 	bReq = rq -> bRequest;
 	wInd = rq -> wIndex.bytes[0];
@@ -54,14 +54,14 @@ USB_PUBLIC uchar usbFunctionSetup(uchar data[8])
 		case USBRQ_GET_STATUS:
 			if((rq -> bmRequestType & USBRQ_RCPT_MASK) == USBRQ_RCPT_DEVICE)
 			{
-				usbMsgPtr = (int)&statusDev[0];
+				usbMsgPtr = (usbMsgPtr_t)&statusDev[0];
 				return sizeof(statusDev);
 			}
 			else if((rq -> bmRequestType & USBRQ_RCPT_MASK) == USBRQ_RCPT_INTERFACE)
 			{
 				if((rq -> wIndex.bytes[0] == 0x00) | (rq -> wIndex.bytes[0] == 0x01))
 				{
-					usbMsgPtr = (int)&statusInt[0];
+					usbMsgPtr = (usbMsgPtr_t)&statusInt[0];
 					return sizeof(statusInt);
 				}
 				else return USB_NO_MSG;
@@ -75,7 +75,7 @@ USB_PUBLIC uchar usbFunctionSetup(uchar data[8])
 	}
 }
 
-uchar usbFunctionRead(uchar * data, uchar len) // mb turn off in usbconfig ???
+USB_PUBLIC uchar usbFunctionRead(uchar * data, uchar len) // mb turn off in usbconfig ???
 {
 	switch(bReq)
 	{
@@ -98,7 +98,7 @@ uchar usbFunctionRead(uchar * data, uchar len) // mb turn off in usbconfig ???
 	}
 }
 
-uchar usbFunctionWrite(uchar * data, uchar len) // mb turn off in usbconfig ???
+USB_PUBLIC uchar usbFunctionWrite(uchar * data, uchar len) // mb turn off in usbconfig ???
 {
 	switch(bReq)
 	{
@@ -109,7 +109,7 @@ uchar usbFunctionWrite(uchar * data, uchar len) // mb turn off in usbconfig ???
 	}
 }
 
-void usbFunctionWriteOut(uchar * data, uchar len) // mb turn off in usbconfig ???
+USB_PUBLIC void usbFunctionWriteOut(uchar * data, uchar len) // mb turn off in usbconfig ???
 {
 	
 }
