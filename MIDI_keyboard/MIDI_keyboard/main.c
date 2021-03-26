@@ -130,7 +130,7 @@ ISR(ADC_vect)
 	}
 }
 
-void hardwareInit(void)
+inline void hardwareInit(void)
 {
 // IO PORT:
 	PORTB = (1 << BUT_B0) | (1 << BUT_B1) | (1 << BUT_B2) | (1 << BUT_B3);
@@ -298,13 +298,15 @@ void main(void)
 		
 		if((cnt_deb == DEB) & (cnt_deb_beet < DEB_BEET)) cnt_deb_beet++;
 		else cnt_deb_beet = 0; 
-		
+
+/*	
 ERROR:	if(curInt == 0x00) 
 		{
 			LED_OFF; // wrong interface: required reset
 			usbPoll();
 			goto ERROR;
 		}
+*/
     }
 }
 
