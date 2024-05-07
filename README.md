@@ -1,17 +1,13 @@
-## DIY MIDI keyboard for record drum kit with DAW
+## Basic MIDI keyboard using an ATMega8 microcontroller
 
-MIDI keyboard based on ATMega8(A) (88) using V-USB for connect to PC without special driver. USB descriptor is basic MIDI driver: ```Audio Control Interface Descriptor``` , ```MIDIStreaming Interface Descriptors ```. On ADC input there are 2 potentiometers for any using in DAW (e.g. Volume of current channel and master).
+This is a three octave keyboard which is decoded through a matrix.
+Not all keys are mapped yet, I just wanted basic functionality.
 
-#### Defines:
-
-* Frequency CPU 12 or 16 MHz
-* In defines can be set pinout of buttons
-* Value of debounce, threshold, etc.
-* For now buttons can't transmit value of velocity and MIDI packet has only event of press current button
-
-Improvements: 
-
-* Using another technique of debounce button
-* Using velocity
-* Increase the number of channels
+## Changes over senya1997 implementation
+ - Forced 12MHz clock but can be changed through the definition of F_CPU
+ - Used Makefile instead of Visual Studio project file
+ - Updated VUSB version so it actaully compiles on modern systems
+ - Better USB handling (less chance for bugged MIDI keys)
+ - Less customizable but more powerful (able to decode a keyboard matrix)
+ - Simplified implementation (a tiny bit)
 

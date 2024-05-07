@@ -727,8 +727,8 @@ typedef struct usbRequest{
 #define USBDESCR_HID            0x21
 #define USBDESCR_HID_REPORT     0x22
 #define USBDESCR_HID_PHYS       0x23
-#define USBDESCR_CS_INTERFACE	0x24
-#define USBDESCR_CS_ENDPOINT	0x25
+#define USBDESCR_CS_INTERFACE   0x24
+#define USBDESCR_CS_ENDPOINT    0x25
 
 //#define USBATTR_BUSPOWER        0x80  // USB 1.1 does not define this value any more
 #define USBATTR_BUSPOWER        0
